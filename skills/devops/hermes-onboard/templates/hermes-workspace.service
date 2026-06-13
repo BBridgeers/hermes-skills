@@ -1,0 +1,27 @@
+[Unit]
+Description=Hermes Workspace - Web UI for agent chat, files, jobs, swarm
+After=network-online.target hermes-gateway.service hermes-dashboard.service
+Wants=network-online.target hermes-gateway.service hermes-dashboard.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/npx vite dev --port 3100 --host 127.0.0.1
+WorkingDirectory=%h/hermes-workspace
+Environment="PATH=%h/.hermes/node/bin:/usr/bin:/usr/local/bin"
+Environment="NODE_OPTIONS=--max-old-space-size=2048"
+Environment="HERMES_API_URL=http://127.0.0.1:8642"
+Environment="HERMES_API_TOKEN=HERMES_API_KEY_REDACTED"
+Environment="HERMES_DASHBOARD_URL=http://127.0.0.1:9119"
+Restart=always
+RestartSec=5
+RestartMaxDelaySec=300
+RestartSteps=5
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

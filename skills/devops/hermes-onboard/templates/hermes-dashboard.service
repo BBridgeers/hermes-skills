@@ -1,0 +1,26 @@
+[Unit]
+Description=Hermes Dashboard - Web UI for config, models, sessions
+After=network-online.target hermes-gateway.service
+Wants=network-online.target hermes-gateway.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/hermes-agent/venv/bin/python3 -m hermes_cli.main dashboard --port 9119 --host 127.0.0.1 --skip-build --no-open
+WorkingDirectory=/usr/local/lib/hermes-agent
+Environment="PATH=/usr/local/lib/hermes-agent/venv/bin:/usr/bin:/usr/local/bin"
+Environment="VIRTUAL_ENV=/usr/local/lib/hermes-agent/venv"
+Environment="HERMES_HOME=%h/.hermes"
+Environment="HERMES_WEB_DIST=/usr/local/lib/hermes-agent/hermes_cli/web_dist"
+Restart=always
+RestartSec=5
+RestartMaxDelaySec=300
+RestartSteps=5
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

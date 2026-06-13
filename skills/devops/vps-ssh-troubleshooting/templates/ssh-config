@@ -1,0 +1,66 @@
+# Hermes VPS SSH Config — Termius / standard SSH config
+# Import into Termius: Settings → SSH → Import → select this file
+# Or copy to ~/.ssh/config on any machine for instant access
+#
+# PREREQUISITE: Copy your private key (~/.ssh/id_ed25519) to the client device
+
+# === PRIMARY: Direct IP connection ===
+Host vps hermes srv1617682
+    HostName VPS_IP_REDACTED
+    Port 2222
+    User root
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    Compression yes
+
+# === TAILSCALE: VPN connection (works from laptop/phone) ===
+Host vps-tailnet hermes-tailnet
+    HostName 100.78.50.1
+    Port 2222
+    User root
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    Compression yes
+
+# === PORT FORWARDING: WebUI tunnel ===
+Host vps-webui
+    HostName VPS_IP_REDACTED
+    Port 2222
+    User root
+    IdentityFile ~/.ssh/id_ed25519
+    LocalForward 8787 localhost:8787
+    LocalForward 3100 localhost:3100
+    LocalForward 3001 localhost:3001
+    ServerAliveInterval 60
+
+# === PORT FORWARDING: Full dev tunnel (all services) ===
+Host vps-dev
+    HostName VPS_IP_REDACTED
+    Port 2222
+    User root
+    IdentityFile ~/.ssh/id_ed25519
+    LocalForward 8787 localhost:8787
+    LocalForward 8642 localhost:8642
+    LocalForward 3100 localhost:3100
+    LocalForward 3001 localhost:3001
+    LocalForward 3002 localhost:3002
+    LocalForward 11434 localhost:11434
+    ServerAliveInterval 60
+
+# === LAPTOP over Tailscale ===
+Host laptop lenovo
+    HostName 100.66.73.41
+    User yoga
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+
+# === IPHONE over Tailscale ===
+Host iphone
+    HostName 100.83.246.35
+    Port 2222
+    User root
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60

@@ -1,0 +1,18 @@
+{
+  "hosts": {
+    "hermes": {
+      "peerName": "Blake",
+      "aiPeer": "Hermes",
+      "workspace": "Hermes",
+      "observationMode": "directional",
+      "writeFrequency": "async",
+      "recallMode": "hybrid",
+      "dialecticCadence": 2,
+      "dialecticReasoningLevel": "medium",
+      "sessionStrategy": "per-directory",
+      "enabled": true,
+      "saveMessages": true
+    }
+  },
+  "baseUrl": "http://honcho-api-1:8000"
+}

@@ -1,0 +1,13 @@
+*** Begin Patch
+*** Update File: docker-compose.yml
+@@ context hint @@
+ services:
+   hermes-workspace:
+     image: ghcr.io/outsourc-e/hermes-workspace:latest
+-    command: ["node", "--max-old-space-size=2048", "server-entry.js"]
++    command: ["sh", "-c", "chmod 777 /app && node server-entry.js"]
+     user: "0:0"
+     environment:
+       HERMES_API_URL: http://hermes-agent:8642
+*** End Patch
+", "mode": "replace"}

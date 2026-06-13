@@ -1,0 +1,19 @@
+# Traefik File Provider Config Template
+# Mount at /etc/traefik.d/<service_name>.yml
+# Restart Traefik after changes: docker restart traefik-traefik-1
+
+http:
+  routers:
+    <service_name>:
+      rule: "Host(`<domain>`)"
+      entryPoints:
+        - websecure
+      tls: {}
+      service: <service_name>
+
+  services:
+    <service_name>:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:<port>"
+        passHostHeader: true

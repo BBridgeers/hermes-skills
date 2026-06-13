@@ -1,0 +1,22 @@
+# traefik-config.yml
+# Mount at /etc/traefik.d/veracar.yml for Traefik file provider
+
+http:
+  routers:
+    veracar:
+      rule: "Host(`veracar.co`) || Host(`www.veracar.co`)"
+      service: veracar
+      entryPoints:
+        - web
+        - websecure
+      # TLS termination handled by Traefik via Let's Encrypt
+
+  services:
+    veracar:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3001"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "10s"

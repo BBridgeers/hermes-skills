@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+# sync-context.sh — Heartbeat script for slack-context-sync
+# Scans recent Hermes sessions and updates ~/.hermes/slack-context.md
+# with a cross-channel snapshot of current activity.
+#
+# Usage:
+#   ./sync-context.sh              # scan last 30 min, write if changed
+#   ./sync-context.sh --force      # always write, even if unchanged
+#
+# Exit codes:
+#   0  context updated or no change needed
+#   1  error (check stderr)
+
+set -euo pipefail
+
+CONTEXT_FILE="$HOME/.hermes/slack-context.md"
+TEMP_FILE="$(mktemp)"
+LOCK_FILE="$HOME/.hermes/slack-context.lock"
+MAX_AGE_MINUTES=30
+CURRENT_TIME=$(date -u +%s)
+
+# ── Guard against concurrent runs ──────────────────────────────────
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
+    echo "SYNC_CONTEXT_LOCKED: another sync-context instance is running" >&2
+    exit 0
+fi
+
+# ── Collect recent session data ────────────────────────────────────
+
+# Get recent session summaries. session_search with no query returns recent.
+# We'll grep the agent log for the last N minutes of activity.
+LOG_FILE="$HOME/.hermes/logs/agent.log"
+
+SESSION_DATA=""
+SOURCE="unknown"
+
+if [ -f "$LOG_FILE" ]; then
+    # Extract activity from last MAX_AGE_MINUTES
+    CUTOFF=$(date -u -d "$MAX_AGE_MINUTES minutes ago" '+%Y-%m-%d %H:%M' 2>/dev/null || date -u -v-${MAX_AGE_MINUTES}M '+%Y-%m-%d %H:%M')
+    
+    # Check if there's any activity in the window
+    RECENT_LINES=$(grep -c "." "$LOG_FILE" 2>/dev/null || echo "0")
+    
+    if [ "$RECENT_LINES" -gt 0 ]; then
+        SESSION_DATA="Recent activity detected in agent log ($RECENT_LINES lines)"
+        
+        # Try to determine source — Slack sessions typically have different markers
+        if grep -qi "slack\|send_message" "$LOG_FILE" 2>/dev/null | tail -5 | grep -q "."; then
+            SOURCE="Slack"
+        elif grep -qi "terminal\|cli\|bash\|ssh" "$LOG_FILE" 2>/dev/null | tail -5 | grep -q "."; then
+            SOURCE="Terminal"
+        else
+            SOURCE="Unknown"
+        fi
+    fi
+fi
+
+# ── Try hermes session_search if available ────────────────────────
+
+HERMES_SESSIONS=""
+if command -v hermes &>/dev/null; then
+    # Try to get recent sessions — this may fail if hermes CLI isn't configured for this
+    HERMES_SESSIONS=$(hermes session_search --limit 3 2>/dev/null || echo "")
+fi
+
+# If we have no data at all, check for the context file and exit
+if [ -z "$SESSION_DATA" ] && [ -z "$HERMES_SESSIONS" ]; then
+    if [ "${1:-}" != "--force" ]; then
+        # No activity detected — leave existing context alone
+        rm -f "$TEMP_FILE"
+        exit 0
+    fi
+fi
+
+# ── Build context snapshot ─────────────────────────────────────────
+
+# Compute hash of existing context for change detection
+OLD_HASH=""
+EXISTING_SECTIONS=""
+if [ -f "$CONTEXT_FILE" ]; then
+    OLD_HASH=$(sha256sum "$CONTEXT_FILE" 2>/dev/null | cut -d' ' -f1 || echo "")
+    # Extract existing sections BEFORE we write anything — avoids race condition
+    # where heredoc writes TEMP_FILE while grep reads from the same file
+    EXISTING_SECTIONS=$(cat "$CONTEXT_FILE" 2>/dev/null || true)
+fi
+
+TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+# Extract preserved sections from existing content (if any)
+ACTIVE_PROJECT=$(echo "$EXISTING_SECTIONS" | sed -n '/^## Active Project/{n;p;}' | head -1)
+RECENT_TOPICS=$(echo "$EXISTING_SECTIONS" | sed -n '/^## Recent Topics/,/^## /{/^## Recent Topics/d;/^## /q;p;}' | head -10)
+KEY_DECISIONS=$(echo "$EXISTING_SECTIONS" | sed -n '/^## Key Decisions/,/^## /{/^## Key Decisions/d;/^## /q;p;}' | head -5)
+PENDING_ACTIONS=$(echo "$EXISTING_SECTIONS" | sed -n '/^## Pending Actions/,/^## /{/^## Pending Actions/d;/^## /q;p;}' | head -5)
+KEY_FILES=$(echo "$EXISTING_SECTIONS" | sed -n '/^## Key Files/,/^## /{/^## Key Files/d;/^## /q;p;}' | head -5)
+
+# If we have recent session data, update the snapshot
+if [ -n "$SESSION_DATA" ] || [ -n "$HERMES_SESSIONS" ]; then
+    # Preserve existing meaningful content, only update what changed
+    [ -z "$ACTIVE_PROJECT" ] && ACTIVE_PROJECT="See recent activity below"
+    [ -z "$RECENT_TOPICS" ] && RECENT_TOPICS="- Activity detected in last ${MAX_AGE_MINUTES}min"
+    [ -z "$KEY_DECISIONS" ] && KEY_DECISIONS="- None recorded"
+    [ -z "$PENDING_ACTIONS" ] && PENDING_ACTIONS="- None"
+    [ -z "$KEY_FILES" ] && KEY_FILES="- None"
+
+    cat > "$TEMP_FILE" <<EOF
+# Active Context — $TIMESTAMP
+
+## Current Source
+$SOURCE
+
+## Active Project
+$ACTIVE_PROJECT
+
+## Recent Topics
+$RECENT_TOPICS
+
+## Key Decisions
+$KEY_DECISIONS
+
+## Pending Actions
+$PENDING_ACTIONS
+
+## Key Files
+$KEY_FILES
+
+## Last Sync
+Heartbeat ran at $TIMESTAMP — $SOURCE activity detected
+EOF
+else
+    # No activity — bootstrap or preserve existing as-is
+    if [ -n "$EXISTING_SECTIONS" ]; then
+        echo "$EXISTING_SECTIONS" > "$TEMP_FILE"
+    else
+        cat > "$TEMP_FILE" <<'BOOTSTRAP'
+# Active Context — bootstrap
+
+## Current Source
+Unknown
+
+## Active Project
+None recorded yet
+
+## Recent Topics
+- No context sync has run yet
+
+## Key Decisions
+- None recorded
+
+## Pending Actions
+- None
+
+## Key Files
+- None
+
+## Last Message
+Context sync initialized
+BOOTSTRAP
+    fi
+fi
+
+# ── Change detection — only write if content changed ───────────────
+
+NEW_HASH=$(sha256sum "$TEMP_FILE" 2>/dev/null | cut -d' ' -f1 || echo "")
+
+if [ "$NEW_HASH" = "$OLD_HASH" ] && [ "${1:-}" != "--force" ]; then
+    # No change — skip write, keep existing file and inode stable
+    rm -f "$TEMP_FILE"
+    exit 0
+fi
+
+# ── Atomic write ──────────────────────────────────────────────────
+
+# Write to temp location, then move atomically
+mkdir -p "$(dirname "$CONTEXT_FILE")"
+mv "$TEMP_FILE" "$CONTEXT_FILE"
+
+echo "SYNC_CONTEXT_UPDATED: context refreshed at $TIMESTAMP (source: $SOURCE)" >&2
+exit 0

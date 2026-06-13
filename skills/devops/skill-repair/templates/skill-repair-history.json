@@ -1,0 +1,11 @@
+{
+  "_description": "Per-skill repair cooldown state. Each entry tracks the last repair attempt for idempotency. Delete a key to remove its cooldown.",
+  "_format": {
+    "skill-name": {
+      "last_repair_at": "ISO8601 timestamp",
+      "exit_code": "REPAIR_OK_FIXED | REPAIR_OK_SYSTEMIC | REPAIR_DIAGNOSED_NO_FIX | REPAIR_BLOCKED",
+      "fix_description": "one-line summary of what was done",
+      "issue_ref": "optional issue or session ID for tracking"
+    }
+  }
+}

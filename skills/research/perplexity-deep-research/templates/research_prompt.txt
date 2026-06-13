@@ -1,0 +1,20 @@
+# TASK: {{RESEARCH_GOAL}}
+# PROJECT: {{PROJECT_NAME}}
+
+## 1. DESIGN CONTEXT
+{{DESIGN_CONTEXT}}
+
+## 2. TECHNICAL SPECIFICATIONS / INPUT DATA
+{{TECHNICAL_SPECS}}
+
+## 3. RESEARCH DOMAINS & INSTRUCTIONS
+Perform an EXHAUSTIVE, multi-pass inquiry (> {{TARGET_KB}}KB output) covering the following domains:
+
+{{RESEARCH_DOMAINS}}
+
+## 4. STRICTURES & FORMATTING
+- USE TABLES for data comparisons.
+- PROVIDE REPEATED DEEP DIVES into specific details.
+- MAINTAIN MAXIMUM VERBOSITY. If a section feels complete, find another angle to explore (e.g., edge cases, alternative approaches, long-term risks).
+- DO NOT summarize; provide the raw, expanded analysis.
+- TARGET VOLUME: {{TARGET_KB}}KB minimum.

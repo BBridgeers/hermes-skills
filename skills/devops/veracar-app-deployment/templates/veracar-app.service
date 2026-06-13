@@ -1,0 +1,22 @@
+[Unit]
+Description=veracar.co Vehicle Analyzer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/npx next start
+WorkingDirectory=/root/veracar-app
+Environment="PORT=3002"
+Environment="HOSTNAME=0.0.0.0"
+Environment="NEXT_TELEMETRY=0"
+Restart=always
+RestartSec=5
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=Git Repo Auto-Pull Watcher
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/repo-watcher.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/repo-watcher.log
+StandardError=append:/var/log/repo-watcher.log
+
+[Install]
+WantedBy=multi-user.target
