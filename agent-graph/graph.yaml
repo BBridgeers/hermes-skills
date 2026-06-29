@@ -1,0 +1,207 @@
+agent_graph:
+  version: "1.0.0"
+  description: "DFW Web Design NOW agent dependency graph. Nodes are MCP-powered infrastructure that agents depend on across phases."
+
+  nodes:
+    - id: filesystem-node
+      name: filesystem-node
+      powered_by: server-filesystem
+      status: immediate
+      role: "Core I/O node. Every build phase agent reads specs and writes output artifacts through this node."
+      tools:
+        - mcp_filesystem_read_text_file
+        - mcp_filesystem_write_file
+        - mcp_filesystem_edit_file
+        - mcp_filesystem_list_directory
+        - mcp_filesystem_create_directory
+      depended_on_by:
+        - shell-execution-node
+        - web-fetch-node
+        - data-layer-node
+
+    - id: shell-execution-node
+      name: shell-execution-node
+      powered_by: mcp-server-commands
+      status: immediate
+      role: "Build Execution Agent node. Runs npm, Tailwind, Playwright, and deploy scripts at each phase gate."
+      tools:
+        - mcp_mcp_server_commands_run_process
+        - mcp_mcp_shell_server_shell_execute
+      depends_on:
+        - filesystem-node
+      depended_on_by:
+        - qa-security-node
+
+    - id: web-fetch-node
+      name: web-fetch-node
+      powered_by: fetch-mcp
+      status: immediate
+      role: "Research Agent node. Competitor analysis and live web data access for the discovery phase."
+      tools:
+        - mcp_fetch_mcp_fetch_markdown
+        - mcp_fetch_mcp_fetch_html
+        - mcp_fetch_mcp_fetch_json
+        - mcp_fetch_mcp_fetch_txt
+      depends_on:
+        - filesystem-node
+      depended_on_by:
+        - competitor-research-agent
+        - client-site-audit-agent
+
+    - id: data-layer-node
+      name: data-layer-node
+      powered_by: bytebase/dbhub
+      status: immediate
+      role: "Persistent State node. Every agent phase that reads/writes client or project state routes through here."
+      tools:
+        - mcp_dbhub_execute_sql
+        - mcp_dbhub_search_objects
+      depends_on:
+        - filesystem-node
+      depended_on_by:
+        - project-tracker-agent
+        - proposal-gen-agent
+        - client-data-agent
+
+    - id: deployment-node
+      name: deployment-node
+      powered_by: cloudflare/mcp-server-cloudflare
+      status: near-future
+      role: "Deployment Agent node. Pushes builds to Cloudflare Pages and updates DNS at the delivery phase gate."
+      tools:
+        - mcp_cloudflare_deploy_pages
+        - mcp_cloudflare_update_dns
+      depends_on:
+        - shell-execution-node
+      env_required:
+        - CLOUDFLARE_API_TOKEN
+
+    - id: monitoring-node
+      name: monitoring-node
+      powered_by: server-sentry
+      status: near-future
+      role: "Post-Deploy Monitor node. Polls Sentry after delivery and surfaces issues back through the agent graph."
+      tools:
+        - mcp_sentry_get_issue
+        - mcp_sentry_list_issues
+      depends_on:
+        - deployment-node
+      env_required:
+        - SENTRY_AUTH_TOKEN
+
+    - id: qa-security-node
+      name: qa-security-node
+      powered_by: qianniuspace/mcp-security-audit + semgrep
+      status: near-future
+      role: "QA Gate node. Automatic pre-delivery security gate that must pass before any client site goes live."
+      tools:
+        - mcp_security_audit_npm
+        - mcp_security_audit_semgrep
+      depends_on:
+        - shell-execution-node
+      blocks:
+        - deployment-node
+
+    - id: client-isolation-node
+      name: client-isolation-node
+      powered_by: mcp-server-multiverse
+      status: near-future
+      role: "Context Isolation node. Creates isolated MCP server instances per client to prevent state bleed."
+      depends_on:
+        - filesystem-node
+        - data-layer-node
+
+    - id: aggregator-node
+      name: aggregator-node
+      powered_by: 1mcp/agent
+      status: distant
+      role: "Meta-aggregator node. Unifies all running MCP servers behind a single endpoint when the stack exceeds 10 servers."
+      depends_on:
+        - filesystem-node
+        - shell-execution-node
+        - web-fetch-node
+        - data-layer-node
+
+    - id: management-plane-node
+      name: management-plane-node
+      powered_by: metatool-ai/metatool-app
+      status: distant
+      role: "Team Management node. GUI layer for non-technical team members to manage MCP connections without CLI access."
+      depends_on:
+        - aggregator-node
+
+  edges:
+    - from: filesystem-node
+      to: shell-execution-node
+      type: hard_dependency
+    - from: filesystem-node
+      to: web-fetch-node
+      type: hard_dependency
+    - from: filesystem-node
+      to: data-layer-node
+      type: hard_dependency
+    - from: shell-execution-node
+      to: qa-security-node
+      type: hard_dependency
+    - from: shell-execution-node
+      to: deployment-node
+      type: hard_dependency
+    - from: deployment-node
+      to: monitoring-node
+      type: hard_dependency
+    - from: qa-security-node
+      to: deployment-node
+      type: blocking_gate
+    - from: filesystem-node
+      to: client-isolation-node
+      type: hard_dependency
+    - from: data-layer-node
+      to: client-isolation-node
+      type: hard_dependency
+    - from: filesystem-node
+      to: aggregator-node
+      type: hard_dependency
+    - from: shell-execution-node
+      to: aggregator-node
+      type: hard_dependency
+    - from: web-fetch-node
+      to: aggregator-node
+      type: hard_dependency
+    - from: data-layer-node
+      to: aggregator-node
+      type: hard_dependency
+    - from: aggregator-node
+      to: management-plane-node
+      type: hard_dependency
+
+  agents:
+    - name: discovery-agent
+      depends_on:
+        - web-fetch-node
+        - filesystem-node
+        - data-layer-node
+
+    - name: spec-writer-agent
+      depends_on:
+        - filesystem-node
+        - data-layer-node
+        - web-fetch-node
+
+    - name: build-agent
+      depends_on:
+        - filesystem-node
+        - shell-execution-node
+        - data-layer-node
+
+    - name: qa-agent
+      depends_on:
+        - filesystem-node
+        - shell-execution-node
+        - qa-security-node
+
+    - name: delivery-agent
+      depends_on:
+        - filesystem-node
+        - deployment-node
+        - data-layer-node
+        - monitoring-node

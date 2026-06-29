@@ -13,12 +13,22 @@ These are `SKILL.md` files — executable procedural memory for the [Hermes Agen
 - **Pitfalls and failure modes** — what breaks and how to fix it
 - **References** — supporting scripts, templates, and documentation
 
+## DFW Web Design NOW Integration
+
+This repo now hosts the DFW Web Design NOW MCP integration:
+
+- **13 DFW skills** under `skills/` (e.g., `build-executor`, `client-data`, `proposal-gen`)
+- **Agent graph** at `agent-graph/graph.yaml` with 10 dependency nodes
+- **Integration status** in `DFW_MCP_INTEGRATION_STATUS.md`
+
+These skills wrap MCP tools from the DFW classification matrix into executable SOPs.
+
 ## Categories
 
-| Domain | Count |
-|---|---|
-| DevOps & Infrastructure | ~70 |
-| Software Development | ~30 |
+|| Domain | Count |
+|---|---|---|
+|| DevOps & Infrastructure | ~70 |
+|| Software Development | ~65 |
 | Research & Deep Research | ~25 |
 | Autonomous AI Agents | ~20 |
 | Marketing & GTM | ~15 |
