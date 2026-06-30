@@ -11,6 +11,26 @@
 | Distant MCP servers | 10 | 10 configured |
 | DFW skills | 13 | 13 |
 | Agent graph nodes | 10 | 10 |
+| Smithery Bridge | — | ✅ Wired |
+
+## Smithery Bridge (NEW)
+
+The **Smithery Bridge** (`/root/.hermes/scripts/smithery_bridge.py`) now auto-populates Hermes config.yaml from the Smithery MCP registry.
+
+- Searches `registry.smithery.ai` for available MCP servers
+- Installs HTTP-transport servers directly into `~/.hermes/config.yaml`
+- Auto-configures `Authorization: Bearer ${SMITHERY_API_KEY}` headers
+- Skips banned servers (Tavily per SOUL.md)
+- Skill: `smithery-bridge` under `devops/`
+
+**Usage:**
+```bash
+python3 /root/.hermes/scripts/smithery_bridge.py list          # Browse registry
+python3 /root/.hermes/scripts/smithery_bridge.py search <q>    # Search
+python3 /root/.hermes/scripts/smithery_bridge.py install <s>   # Install one
+python3 /root/.hermes/scripts/smithery_bridge.py configure-all # Install all
+hermes mcp reload  # Activate new servers
+```
 
 ## Immediate MCP Servers (config.yaml)
 
